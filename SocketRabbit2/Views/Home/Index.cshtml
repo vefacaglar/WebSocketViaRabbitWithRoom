@@ -1,0 +1,30 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<h1>WebSocket Topic Example</h1>
+<button onclick="connectWebSocket()">Connect WebSocket</button>
+
+@section Scripts {
+    <script>
+        function connectWebSocket() {
+            var socket = new WebSocket("ws/vefacaglar");
+
+            socket.onopen = function (event) {
+                console.log("WebSocket is open now.");
+            };
+
+            socket.onmessage = function (event) {
+                console.log("Received message: " + event.data);
+            };
+
+            socket.onclose = function (event) {
+                console.log("WebSocket is closed now.");
+            };
+
+            socket.onerror = function (error) {
+                console.error("WebSocket error:", error);
+            };
+        }
+    </script>
+}

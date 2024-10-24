@@ -36,6 +36,8 @@ public class WebSocketMiddleware
                 _backgroundService.StartConsumingForRoom(room);
 
                 await HandleWebSocketAsync(webSocket, room, socketId);
+
+                _backgroundService.NotifyClientDisconnected(room);
             }
             else
             {

@@ -23,7 +23,7 @@ public class WebSocketConnectionManager
 
             if (roomSockets.IsEmpty)
             {
-                _rooms.TryRemove(room, out _);
+                _rooms.TryRemove(room, out _); 
             }
         }
     }
@@ -33,7 +33,11 @@ public class WebSocketConnectionManager
         if (_rooms.TryGetValue(room, out var roomSockets))
         {
             var buffer = Encoding.UTF8.GetBytes(message);
-            var tasks = roomSockets.Values.Select(socket => socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None));
+            var tasks = roomSockets.Values.Where(x => x.State == WebSocketState.Open).Select(socket =>
+                {
+                    return socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+            );
             await Task.WhenAll(tasks);
         }
     }

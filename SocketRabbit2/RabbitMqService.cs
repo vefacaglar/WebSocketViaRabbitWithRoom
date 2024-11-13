@@ -11,7 +11,11 @@ public class RabbitMqService : IDisposable
 
     public RabbitMqService()
     {
-        var factory = new ConnectionFactory() { HostName = "localhost" };
+        //var factory = new ConnectionFactory() { HostName = "localhost" };
+        var factory = new ConnectionFactory()
+        {
+            HostName = "localhost"
+        };
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
     }

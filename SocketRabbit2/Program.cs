@@ -12,7 +12,7 @@ builder.Services.AddWebSockets(options =>
 builder.Services.AddSingleton<WebSocketConnectionManager>();
 builder.Services.AddSingleton<RabbitMqService>();
 builder.Services.AddSingleton<IWebSocketBackgroundService, WebSocketBackgroundService>();
-builder.Services.AddHostedService<WebSocketBackgroundService>();
+//builder.Services.AddHostedService<WebSocketBackgroundService>();
 
 var app = builder.Build();
 

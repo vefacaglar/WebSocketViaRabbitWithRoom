@@ -10,7 +10,7 @@ public interface IWebSocketBackgroundService
     void NotifyClientDisconnected(string room);
 }
 
-public class WebSocketBackgroundService : BackgroundService, IWebSocketBackgroundService
+public class WebSocketBackgroundService : IWebSocketBackgroundService
 {
     private readonly RabbitMqService _rabbitMqService;
     private readonly WebSocketConnectionManager _connectionManager;
@@ -22,11 +22,6 @@ public class WebSocketBackgroundService : BackgroundService, IWebSocketBackgroun
     {
         _rabbitMqService = rabbitMqService;
         _connectionManager = connectionManager;
-    }
-
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        return Task.CompletedTask;
     }
 
     public void StartConsumingForRoom(string room)
@@ -87,16 +82,5 @@ public class WebSocketBackgroundService : BackgroundService, IWebSocketBackgroun
             // Remove the room connection count
             _roomConnectionCounts.TryRemove(room, out _);
         }
-    }
-
-    public override void Dispose()
-    {
-        foreach (var tokenSource in _cancellationTokens.Values)
-        {
-            tokenSource.Cancel();
-        }
-
-        _rabbitMqService.Dispose();
-        base.Dispose();
     }
 }

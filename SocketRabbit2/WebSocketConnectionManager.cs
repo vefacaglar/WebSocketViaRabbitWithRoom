@@ -16,7 +16,7 @@ public class WebSocketConnectionManager
     {
         if (_rooms.TryGetValue(room, out var roomSockets) && roomSockets.TryRemove(id, out var socket))
         {
-            if (socket != null)
+            if (socket != null && socket.State == WebSocketState.Open)
             {
                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by the WebSocketManager", CancellationToken.None);
             }

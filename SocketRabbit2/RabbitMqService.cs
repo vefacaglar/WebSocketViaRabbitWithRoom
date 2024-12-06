@@ -16,8 +16,8 @@ public class RabbitMqService : IDisposable
         {
             HostName = "localhost"
         };
-        _connection = factory.CreateConnection();
-        _channel = _connection.CreateModel();
+        //_connection = factory.CreateConnection();
+        //_channel = _connection.CreateModel();
     }
 
     public void PublishMessage(string room, string message)

@@ -1,17 +1,35 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
 }
-
 <h1>WebSocket Topic Example</h1>
-<button onclick="connectWebSocket()">Connect WebSocket</button>
+<input type="text" id="wsUrl" value="https://development-portal-apigateway.vrunibex.com/ws/ocppservice/device/darkshade" class="form-control" />
+<input type="text" id="access_token" value="" class="form-control" />
+<button onclick="connectWebSocket()" class="btn btn-success">Connect WebSocket</button>
 
 @section Scripts {
     <script>
         function connectWebSocket() {
-            var socket = new WebSocket("ws/vefacaglar");
+            // var socket = new WebSocket("ws/vefacaglar");
+            // var socket = new WebSocket("https://localhost:7225/ws/darkshade");
+            // var socket = new WebSocket("https://localhost:7012/ws/ocppservice/device/darkshade");
+            var wsUrl = document.getElementById('wsUrl').value;
+            var accessToken = document.getElementById("access_token").value;
+            var socket = new WebSocket(`${wsUrl}?token=${accessToken}`);
 
             socket.onopen = function (event) {
+                // socket.send(JSON.stringify({ 
+                //     type: "auth", 
+                //     access_token: accessToken 
+                // }));
                 console.log("WebSocket is open now.");
+
+                // Start sending ping messages every 30 seconds
+                pingInterval = setInterval(() => {
+                    if (socket.readyState === WebSocket.OPEN) {
+                        socket.send("ping"); // You can use any format for the ping message
+                        console.log("Ping sent to server.");
+                    }
+                }, 10000); // 30 seconds interval
             };
 
             socket.onmessage = function (event) {

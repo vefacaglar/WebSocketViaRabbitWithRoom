@@ -1,4 +1,4 @@
-namespace SocketRabbit2.Models
+namespace WebsocketPubsub.Models
 {
     public class ErrorViewModel
     {

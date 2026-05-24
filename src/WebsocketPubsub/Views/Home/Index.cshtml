@@ -2,47 +2,116 @@
     ViewData["Title"] = "Home Page";
 }
 <h1>WebSocket Topic Example</h1>
-<input type="text" id="wsUrl" value="https://development-portal-apigateway.vrunibex.com/ws/ocppservice/device/darkshade" class="form-control" />
-<input type="text" id="access_token" value="" class="form-control" />
-<button onclick="connectWebSocket()" class="btn btn-success">Connect WebSocket</button>
+<div class="mb-3">
+    <label for="room" class="form-label">Room</label>
+    <input type="text" id="room" value="darkshade" class="form-control" />
+</div>
+<div class="mb-3">
+    <label for="wsUrl" class="form-label">WebSocket URL</label>
+    <input type="text" id="wsUrl" class="form-control" readonly />
+</div>
+<div class="mb-3">
+    <button id="connectButton" onclick="connectWebSocket()" class="btn btn-success">Connect WebSocket</button>
+    <button id="disconnectButton" onclick="disconnectWebSocket()" class="btn btn-danger" disabled>Disconnect</button>
+</div>
+<div class="mb-3">
+    <label for="message" class="form-label">Message</label>
+    <div class="input-group">
+        <input type="text" id="message" value="hello local websocket" class="form-control" />
+        <button onclick="publishMessage()" class="btn btn-primary">Publish</button>
+    </div>
+</div>
+<pre id="log" class="bg-light border rounded p-3"></pre>
 
 @section Scripts {
     <script>
+        let socket;
+        let pingInterval;
+
+        const roomInput = document.getElementById('room');
+        const wsUrlInput = document.getElementById('wsUrl');
+        const logOutput = document.getElementById('log');
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+
+        function getRoom() {
+            return roomInput.value.trim() || 'vefa';
+        }
+
+        function getWebSocketUrl() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            return `${protocol}//${window.location.host}/ws/${encodeURIComponent(getRoom())}`;
+        }
+
+        function updateWebSocketUrl() {
+            wsUrlInput.value = getWebSocketUrl();
+        }
+
+        function log(message) {
+            const time = new Date().toLocaleTimeString();
+            logOutput.textContent += `[${time}] ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
         function connectWebSocket() {
-            // var socket = new WebSocket("ws/vefacaglar");
-            // var socket = new WebSocket("https://localhost:7225/ws/darkshade");
-            // var socket = new WebSocket("https://localhost:7012/ws/ocppservice/device/darkshade");
-            var wsUrl = document.getElementById('wsUrl').value;
-            var accessToken = document.getElementById("access_token").value;
-            var socket = new WebSocket(`${wsUrl}?token=${accessToken}`);
+            updateWebSocketUrl();
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                log('WebSocket is already connected.');
+                return;
+            }
+
+            socket = new WebSocket(wsUrlInput.value);
 
             socket.onopen = function (event) {
-                // socket.send(JSON.stringify({ 
-                //     type: "auth", 
-                //     access_token: accessToken 
-                // }));
-                console.log("WebSocket is open now.");
+                log('WebSocket is open.');
+                connectButton.disabled = true;
+                disconnectButton.disabled = false;
 
-                // Start sending ping messages every 30 seconds
+                clearInterval(pingInterval);
                 pingInterval = setInterval(() => {
                     if (socket.readyState === WebSocket.OPEN) {
-                        socket.send("ping"); // You can use any format for the ping message
-                        console.log("Ping sent to server.");
+                        socket.send('ping');
+                        log('Ping sent.');
                     }
-                }, 10000); // 30 seconds interval
+                }, 10000);
             };
 
             socket.onmessage = function (event) {
-                console.log("Received message: " + event.data);
+                log(`Received: ${event.data}`);
             };
 
             socket.onclose = function (event) {
-                console.log("WebSocket is closed now.");
+                clearInterval(pingInterval);
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+                log('WebSocket is closed.');
             };
 
             socket.onerror = function (error) {
-                console.error("WebSocket error:", error);
+                log('WebSocket error. Check application and RabbitMQ logs.');
             };
         }
+
+        function disconnectWebSocket() {
+            if (socket) {
+                socket.close();
+            }
+        }
+
+        async function publishMessage() {
+            const room = encodeURIComponent(getRoom());
+            const message = encodeURIComponent(document.getElementById('message').value);
+            const response = await fetch(`/api/message?room=${room}&message=${message}`);
+
+            if (response.ok) {
+                log('Published message through local API.');
+            } else {
+                log(`Publish failed: HTTP ${response.status}`);
+            }
+        }
+
+        roomInput.addEventListener('input', updateWebSocketUrl);
+        updateWebSocketUrl();
     </script>
 }

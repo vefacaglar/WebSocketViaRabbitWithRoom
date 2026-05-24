@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace SocketRabbit2.Controllers
+namespace WebsocketPubsub.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using SocketRabbit2.Models;
+using WebsocketPubsub.Models;
 using System.Diagnostics;
 
-namespace SocketRabbit2.Controllers
+namespace WebsocketPubsub.Controllers
 {
     public class HomeController : Controller
     {

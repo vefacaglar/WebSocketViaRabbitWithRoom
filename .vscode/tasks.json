@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docker compose up",
+      "type": "shell",
+      "command": "docker compose up -d",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "restore no audit",
+      "type": "shell",
+      "command": "dotnet restore ${workspaceFolder}/src/WebsocketPubsub/WebsocketPubsub.csproj -p:NuGetAudit=false",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "build no restore",
+      "type": "shell",
+      "command": "dotnet build ${workspaceFolder}/src/WebsocketPubsub/WebsocketPubsub.csproj --no-restore -p:NuGetAudit=false",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "debug: prepare",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "docker compose up",
+        "restore no audit",
+        "build no restore"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug WebsocketPubsub",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "debug: prepare",
+      "program": "${workspaceFolder}/src/WebsocketPubsub/bin/Debug/net10.0/WebsocketPubsub.dll",
+      "args": [
+        "--urls",
+        "http://localhost:5232"
+      ],
+      "cwd": "${workspaceFolder}/src/WebsocketPubsub",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+      }
+    }
+  ]
+}

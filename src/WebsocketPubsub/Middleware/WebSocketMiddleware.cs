@@ -44,7 +44,7 @@ public sealed class WebSocketMiddleware
         var socketId = Guid.NewGuid().ToString();
 
         _connections.AddSocket(room, socketId, socket);
-        _broadcaster.Subscribe(room);
+        await _broadcaster.SubscribeAsync(room, context.RequestAborted);
 
         try
         {
@@ -52,7 +52,7 @@ public sealed class WebSocketMiddleware
         }
         finally
         {
-            _broadcaster.Unsubscribe(room);
+            await _broadcaster.UnsubscribeAsync(room);
         }
     }
 }

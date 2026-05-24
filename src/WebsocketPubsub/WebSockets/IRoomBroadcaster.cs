@@ -2,6 +2,6 @@ namespace WebsocketPubsub.WebSockets;
 
 public interface IRoomBroadcaster
 {
-    void Subscribe(string room);
-    void Unsubscribe(string room);
+    Task SubscribeAsync(string room, CancellationToken cancellationToken);
+    Task UnsubscribeAsync(string room);
 }

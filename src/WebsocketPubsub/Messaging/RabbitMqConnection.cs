@@ -3,10 +3,10 @@ using RabbitMQ.Client;
 
 namespace WebsocketPubsub.Messaging;
 
-public sealed class RabbitMqConnection : IDisposable
+public sealed class RabbitMqConnection : IAsyncDisposable
 {
     private readonly ConnectionFactory _factory;
-    private readonly object _lock = new();
+    private readonly SemaphoreSlim _gate = new(1, 1);
     private IConnection? _connection;
     private bool _exchangeDeclared;
 
@@ -25,30 +25,50 @@ public sealed class RabbitMqConnection : IDisposable
 
     public string ExchangeName { get; }
 
-    public IModel CreateChannel()
+    public async Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken = default)
     {
-        lock (_lock)
+        await _gate.WaitAsync(cancellationToken);
+        try
         {
-            if (_connection?.IsOpen != true)
+            if (_connection is null || !_connection.IsOpen)
             {
-                _connection?.Dispose();
-                _connection = _factory.CreateConnection();
+                if (_connection is not null)
+                {
+                    await _connection.DisposeAsync();
+                }
+
+                _connection = await _factory.CreateConnectionAsync(cancellationToken);
                 _exchangeDeclared = false;
             }
 
-            var channel = _connection.CreateModel();
+            var channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
+
             if (!_exchangeDeclared)
             {
-                channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, durable: false, autoDelete: false);
+                await channel.ExchangeDeclareAsync(
+                    exchange: ExchangeName,
+                    type: ExchangeType.Direct,
+                    durable: false,
+                    autoDelete: false,
+                    cancellationToken: cancellationToken);
                 _exchangeDeclared = true;
             }
 
             return channel;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _connection?.Dispose();
+        if (_connection is not null)
+        {
+            await _connection.DisposeAsync();
+        }
+
+        _gate.Dispose();
     }
 }

@@ -16,14 +16,14 @@ public class MessageController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Send([FromBody] SendMessageRequest request)
+    public async Task<IActionResult> Send([FromBody] SendMessageRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Room) || string.IsNullOrWhiteSpace(request.Message))
         {
             return BadRequest("Room and message are required.");
         }
 
-        _publisher.Publish(request.Room.Trim(), request.Message);
+        await _publisher.PublishAsync(request.Room.Trim(), request.Message, cancellationToken);
         return Ok();
     }
 }

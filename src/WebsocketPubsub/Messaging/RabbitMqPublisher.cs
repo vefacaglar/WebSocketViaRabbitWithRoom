@@ -1,4 +1,5 @@
 using System.Text;
+using RabbitMQ.Client;
 
 namespace WebsocketPubsub.Messaging;
 
@@ -11,10 +12,10 @@ public sealed class RabbitMqPublisher : IMessagePublisher
         _connection = connection;
     }
 
-    public void Publish(string room, string message)
+    public async ValueTask PublishAsync(string room, string message, CancellationToken cancellationToken = default)
     {
-        using var channel = _connection.CreateChannel();
+        await using var channel = await _connection.CreateChannelAsync(cancellationToken);
         var body = Encoding.UTF8.GetBytes(message);
-        channel.BasicPublish(exchange: _connection.ExchangeName, routingKey: room, mandatory: false, basicProperties: null, body: body);
+        await channel.BasicPublishAsync(_connection.ExchangeName, room, body, cancellationToken);
     }
 }

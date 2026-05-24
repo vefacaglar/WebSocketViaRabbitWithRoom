@@ -2,5 +2,5 @@ namespace WebsocketPubsub.Messaging;
 
 public interface IMessagePublisher
 {
-    void Publish(string room, string message);
+    ValueTask PublishAsync(string room, string message, CancellationToken cancellationToken = default);
 }

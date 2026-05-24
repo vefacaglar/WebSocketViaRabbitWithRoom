@@ -2,5 +2,5 @@ namespace WebsocketPubsub.Messaging;
 
 public interface IMessageSubscriber
 {
-    IDisposable Subscribe(string room, Action<string> handleMessage, CancellationToken cancellationToken);
+    Task<IAsyncDisposable> SubscribeAsync(string room, Func<string, Task> handleMessageAsync, CancellationToken cancellationToken);
 }

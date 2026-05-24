@@ -13,14 +13,18 @@ public sealed class RabbitMqSubscriber : IMessageSubscriber
         _connection = connection;
     }
 
-    public IDisposable Subscribe(string room, Action<string> handleMessage, CancellationToken cancellationToken)
+    public async Task<IAsyncDisposable> SubscribeAsync(string room, Func<string, Task> handleMessageAsync, CancellationToken cancellationToken)
     {
-        var channel = _connection.CreateChannel();
-        var queueName = channel.QueueDeclare().QueueName;
-        channel.QueueBind(queue: queueName, exchange: _connection.ExchangeName, routingKey: room);
+        var channel = await _connection.CreateChannelAsync(cancellationToken);
+        var queue = await channel.QueueDeclareAsync(cancellationToken: cancellationToken);
+        await channel.QueueBindAsync(
+            queue: queue.QueueName,
+            exchange: _connection.ExchangeName,
+            routingKey: room,
+            cancellationToken: cancellationToken);
 
-        var consumer = new EventingBasicConsumer(channel);
-        consumer.Received += (_, ea) =>
+        var consumer = new AsyncEventingBasicConsumer(channel);
+        consumer.ReceivedAsync += async (_, ea) =>
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -28,36 +32,39 @@ public sealed class RabbitMqSubscriber : IMessageSubscriber
             }
 
             var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-            handleMessage(message);
+            await handleMessageAsync(message);
         };
 
-        channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+        await channel.BasicConsumeAsync(
+            queue: queue.QueueName,
+            autoAck: true,
+            consumer: consumer,
+            cancellationToken: cancellationToken);
 
         return new Subscription(channel, cancellationToken);
     }
 
-    private sealed class Subscription : IDisposable
+    private sealed class Subscription : IAsyncDisposable
     {
-        private readonly IModel _channel;
+        private readonly IChannel _channel;
         private readonly CancellationTokenRegistration _registration;
-        private bool _disposed;
+        private int _disposed;
 
-        public Subscription(IModel channel, CancellationToken cancellationToken)
+        public Subscription(IChannel channel, CancellationToken cancellationToken)
         {
             _channel = channel;
-            _registration = cancellationToken.Register(Dispose);
+            _registration = cancellationToken.Register(() => _ = DisposeAsync().AsTask());
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            if (_disposed)
+            if (Interlocked.Exchange(ref _disposed, 1) == 1)
             {
                 return;
             }
 
-            _disposed = true;
-            _registration.Dispose();
-            _channel.Dispose();
+            await _registration.DisposeAsync();
+            await _channel.DisposeAsync();
         }
     }
 }

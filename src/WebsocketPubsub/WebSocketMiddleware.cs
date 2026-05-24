@@ -35,9 +35,14 @@ public class WebSocketMiddleware
 
                 _backgroundService.StartConsumingForRoom(room);
 
-                await HandleWebSocketAsync(webSocket, room, socketId);
-
-                _backgroundService.NotifyClientDisconnected(room);
+                try
+                {
+                    await HandleWebSocketAsync(webSocket, room, socketId);
+                }
+                finally
+                {
+                    _backgroundService.NotifyClientDisconnected(room);
+                }
             }
             else
             {
@@ -77,7 +82,6 @@ public class WebSocketMiddleware
             if (socket.State != WebSocketState.Aborted) // Check if it wasn't already aborted
             {
                 await _manager.RemoveSocket(room, socketId);
-                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by server", token);
             }
             cancellationTokenSource.Cancel();
         }

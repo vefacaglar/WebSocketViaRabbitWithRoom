@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Hosting;
-using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,9 +13,8 @@ public class WebSocketBackgroundService : IWebSocketBackgroundService
 {
     private readonly RabbitMqService _rabbitMqService;
     private readonly WebSocketConnectionManager _connectionManager;
-    private readonly ConcurrentDictionary<string, Task> _consumers = new ConcurrentDictionary<string, Task>();
-    private readonly ConcurrentDictionary<string, int> _roomConnectionCounts = new ConcurrentDictionary<string, int>();
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
+    private readonly Dictionary<string, RoomConsumer> _rooms = new Dictionary<string, RoomConsumer>();
+    private readonly object _roomsLock = new();
 
     public WebSocketBackgroundService(RabbitMqService rabbitMqService, WebSocketConnectionManager connectionManager)
     {
@@ -26,61 +24,115 @@ public class WebSocketBackgroundService : IWebSocketBackgroundService
 
     public void StartConsumingForRoom(string room)
     {
-        if (!_consumers.ContainsKey(room))
+        lock (_roomsLock)
         {
-            var cancellationTokenSource = new CancellationTokenSource();
-            var token = cancellationTokenSource.Token;
-
-            var consumerTask = Task.Run(() =>
+            if (_rooms.TryGetValue(room, out var consumer))
             {
-                _rabbitMqService.ConsumeMessages(room, async message =>
-                {
-                    if (!token.IsCancellationRequested)
-                    {
-                        await _connectionManager.BroadcastMessage(room, message);
-                    }
-                }, token); // Pass the cancellation token to stop consuming when requested
-            }, token);
+                consumer.IncrementConnectionCount();
+                return;
+            }
 
-            _consumers.TryAdd(room, consumerTask);
-            _cancellationTokens.TryAdd(room, cancellationTokenSource);
+            _rooms[room] = CreateRoomConsumer(room);
         }
-
-        // Increment connection count for this room
-        _roomConnectionCounts.AddOrUpdate(room, 1, (key, currentCount) => currentCount + 1);
     }
 
     public void NotifyClientDisconnected(string room)
     {
-        // Decrement connection count when a client disconnects
-        if (_roomConnectionCounts.TryGetValue(room, out var connectionCount) && connectionCount > 0)
-        {
-            var newCount = connectionCount - 1;
+        RoomConsumer? consumerToDispose = null;
 
-            if (newCount == 0)
+        lock (_roomsLock)
+        {
+            if (_rooms.TryGetValue(room, out var consumer) && consumer.DecrementConnectionCount() == 0)
             {
-                // If no clients remain, stop consuming for the room
-                StopConsumingForRoom(room);
-            }
-            else
-            {
-                _roomConnectionCounts[room] = newCount;
+                _rooms.Remove(room);
+                consumerToDispose = consumer;
             }
         }
+
+        consumerToDispose?.Dispose();
     }
 
     public void StopConsumingForRoom(string room)
     {
-        if (_consumers.TryRemove(room, out var consumerTask) && _cancellationTokens.TryRemove(room, out var cancellationTokenSource))
+        RoomConsumer? consumerToDispose = null;
+
+        lock (_roomsLock)
         {
-            // Cancel the consumer task
-            cancellationTokenSource.Cancel();
+            if (_rooms.Remove(room, out var consumer))
+            {
+                consumerToDispose = consumer;
+            }
+        }
 
-            // Optionally wait for the consumer task to complete
-            consumerTask.Wait();
+        consumerToDispose?.Dispose();
+    }
 
-            // Remove the room connection count
-            _roomConnectionCounts.TryRemove(room, out _);
+    private RoomConsumer CreateRoomConsumer(string room)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var token = cancellationTokenSource.Token;
+
+        var subscription = _rabbitMqService.ConsumeMessages(room, message =>
+        {
+            if (!token.IsCancellationRequested)
+            {
+                _ = BroadcastMessage(room, message, token);
+            }
+        }, token);
+
+        return new RoomConsumer(cancellationTokenSource, subscription);
+    }
+
+    private async Task BroadcastMessage(string room, string message, CancellationToken token)
+    {
+        try
+        {
+            if (!token.IsCancellationRequested)
+            {
+                await _connectionManager.BroadcastMessage(room, message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Broadcast failed for room '{room}': {ex.Message}");
+        }
+    }
+
+    private sealed class RoomConsumer : IDisposable
+    {
+        private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly IDisposable _subscription;
+        private int _connectionCount = 1;
+        private bool _disposed;
+
+        public RoomConsumer(CancellationTokenSource cancellationTokenSource, IDisposable subscription)
+        {
+            _cancellationTokenSource = cancellationTokenSource;
+            _subscription = subscription;
+        }
+
+        public void IncrementConnectionCount()
+        {
+            Interlocked.Increment(ref _connectionCount);
+        }
+
+        public int DecrementConnectionCount()
+        {
+            var count = Interlocked.Decrement(ref _connectionCount);
+            return Math.Max(count, 0);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _cancellationTokenSource.Cancel();
+            _subscription.Dispose();
+            _cancellationTokenSource.Dispose();
         }
     }
 }

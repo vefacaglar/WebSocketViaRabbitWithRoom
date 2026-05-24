@@ -10,7 +10,6 @@ public class RabbitMqService : IDisposable
     private readonly ConnectionFactory _factory;
     private readonly object _connectionLock = new();
     private IConnection? _connection;
-    private IModel? _channel;
 
     public RabbitMqService(IConfiguration configuration)
     {
@@ -25,15 +24,15 @@ public class RabbitMqService : IDisposable
 
     public void PublishMessage(string room, string message)
     {
-        var channel = GetChannel();
+        using var channel = CreateChannel();
         channel.ExchangeDeclare(exchange: room, type: ExchangeType.Fanout);
         var body = Encoding.UTF8.GetBytes(message);
         channel.BasicPublish(exchange: room, routingKey: "", basicProperties: null, body: body);
     }
 
-    public void ConsumeMessages(string room, Action<string> handleMessage, CancellationToken token)
+    public IDisposable ConsumeMessages(string room, Action<string> handleMessage, CancellationToken token)
     {
-        var channel = GetChannel();
+        var channel = CreateChannel();
         channel.ExchangeDeclare(exchange: room, type: ExchangeType.Fanout);
         var queueName = channel.QueueDeclare().QueueName;
         channel.QueueBind(queue: queueName, exchange: room, routingKey: "");
@@ -55,42 +54,80 @@ public class RabbitMqService : IDisposable
         var consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
 
         // Listen for the cancellation token being triggered
-        token.Register(() =>
+        var cancellationRegistration = token.Register(() =>
         {
-            // Cancel the consumer when the token is triggered
-            channel.BasicCancel(consumerTag);
+            try
+            {
+                if (channel.IsOpen)
+                {
+                    channel.BasicCancel(consumerTag);
+                }
+            }
+            catch
+            {
+                // The consumer may already be gone during shutdown.
+            }
         });
+
+        return new RabbitMqConsumer(channel, consumerTag, cancellationRegistration);
     }
 
-    private IModel GetChannel()
+    private IModel CreateChannel()
     {
-        if (_channel?.IsOpen == true)
-        {
-            return _channel;
-        }
-
         lock (_connectionLock)
         {
-            if (_channel?.IsOpen == true)
-            {
-                return _channel;
-            }
-
             if (_connection?.IsOpen != true)
             {
                 _connection?.Dispose();
                 _connection = _factory.CreateConnection();
             }
 
-            _channel?.Dispose();
-            _channel = _connection.CreateModel();
-            return _channel;
+            return _connection.CreateModel();
         }
     }
 
     public void Dispose()
     {
-        _channel?.Dispose();
         _connection?.Dispose();
+    }
+
+    private sealed class RabbitMqConsumer : IDisposable
+    {
+        private readonly IModel _channel;
+        private readonly string _consumerTag;
+        private readonly CancellationTokenRegistration _cancellationRegistration;
+        private bool _disposed;
+
+        public RabbitMqConsumer(IModel channel, string consumerTag, CancellationTokenRegistration cancellationRegistration)
+        {
+            _channel = channel;
+            _consumerTag = consumerTag;
+            _cancellationRegistration = cancellationRegistration;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _cancellationRegistration.Dispose();
+
+            if (_channel.IsOpen)
+            {
+                try
+                {
+                    _channel.BasicCancel(_consumerTag);
+                }
+                catch
+                {
+                    // The broker may already have cancelled the consumer while shutting down.
+                }
+            }
+
+            _channel.Dispose();
+        }
     }
 }

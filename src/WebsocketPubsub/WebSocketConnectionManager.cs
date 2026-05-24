@@ -33,9 +33,24 @@ public class WebSocketConnectionManager
         if (_rooms.TryGetValue(room, out var roomSockets))
         {
             var buffer = Encoding.UTF8.GetBytes(message);
-            var tasks = roomSockets.Values.Where(x => x.State == WebSocketState.Open).Select(socket =>
+            var tasks = roomSockets.Select(async pair =>
                 {
-                    return socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                    var socket = pair.Value;
+
+                    if (socket.State != WebSocketState.Open)
+                    {
+                        await RemoveSocket(room, pair.Key);
+                        return;
+                    }
+
+                    try
+                    {
+                        await socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                    }
+                    catch (WebSocketException)
+                    {
+                        await RemoveSocket(room, pair.Key);
+                    }
                 }
             );
             await Task.WhenAll(tasks);

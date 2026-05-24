@@ -8,10 +8,12 @@ public sealed class RabbitMqConnection : IDisposable
     private readonly ConnectionFactory _factory;
     private readonly object _lock = new();
     private IConnection? _connection;
+    private bool _exchangeDeclared;
 
     public RabbitMqConnection(IOptions<RabbitMqOptions> options)
     {
         var value = options.Value;
+        ExchangeName = value.ExchangeName;
         _factory = new ConnectionFactory
         {
             HostName = value.HostName,
@@ -21,6 +23,8 @@ public sealed class RabbitMqConnection : IDisposable
         };
     }
 
+    public string ExchangeName { get; }
+
     public IModel CreateChannel()
     {
         lock (_lock)
@@ -29,9 +33,17 @@ public sealed class RabbitMqConnection : IDisposable
             {
                 _connection?.Dispose();
                 _connection = _factory.CreateConnection();
+                _exchangeDeclared = false;
             }
 
-            return _connection.CreateModel();
+            var channel = _connection.CreateModel();
+            if (!_exchangeDeclared)
+            {
+                channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, durable: false, autoDelete: false);
+                _exchangeDeclared = true;
+            }
+
+            return channel;
         }
     }
 

@@ -10,4 +10,5 @@ public sealed class RabbitMqOptions
     public int Port { get; set; } = AmqpTcpEndpoint.UseDefaultPort;
     public string UserName { get; set; } = ConnectionFactory.DefaultUser;
     public string Password { get; set; } = ConnectionFactory.DefaultPass;
+    public string ExchangeName { get; set; } = "rooms";
 }

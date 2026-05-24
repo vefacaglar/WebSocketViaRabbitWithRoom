@@ -16,9 +16,8 @@ public sealed class RabbitMqSubscriber : IMessageSubscriber
     public IDisposable Subscribe(string room, Action<string> handleMessage, CancellationToken cancellationToken)
     {
         var channel = _connection.CreateChannel();
-        channel.ExchangeDeclare(exchange: room, type: ExchangeType.Fanout);
         var queueName = channel.QueueDeclare().QueueName;
-        channel.QueueBind(queue: queueName, exchange: room, routingKey: string.Empty);
+        channel.QueueBind(queue: queueName, exchange: _connection.ExchangeName, routingKey: room);
 
         var consumer = new EventingBasicConsumer(channel);
         consumer.Received += (_, ea) =>
@@ -32,37 +31,21 @@ public sealed class RabbitMqSubscriber : IMessageSubscriber
             handleMessage(message);
         };
 
-        var consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+        channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
 
-        var registration = cancellationToken.Register(() =>
-        {
-            try
-            {
-                if (channel.IsOpen)
-                {
-                    channel.BasicCancel(consumerTag);
-                }
-            }
-            catch
-            {
-            }
-        });
-
-        return new Subscription(channel, consumerTag, registration);
+        return new Subscription(channel, cancellationToken);
     }
 
     private sealed class Subscription : IDisposable
     {
         private readonly IModel _channel;
-        private readonly string _consumerTag;
         private readonly CancellationTokenRegistration _registration;
         private bool _disposed;
 
-        public Subscription(IModel channel, string consumerTag, CancellationTokenRegistration registration)
+        public Subscription(IModel channel, CancellationToken cancellationToken)
         {
             _channel = channel;
-            _consumerTag = consumerTag;
-            _registration = registration;
+            _registration = cancellationToken.Register(Dispose);
         }
 
         public void Dispose()
@@ -74,18 +57,6 @@ public sealed class RabbitMqSubscriber : IMessageSubscriber
 
             _disposed = true;
             _registration.Dispose();
-
-            if (_channel.IsOpen)
-            {
-                try
-                {
-                    _channel.BasicCancel(_consumerTag);
-                }
-                catch
-                {
-                }
-            }
-
             _channel.Dispose();
         }
     }

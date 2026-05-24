@@ -7,37 +7,38 @@ using System.Threading;
 
 public class RabbitMqService : IDisposable
 {
-    private readonly IConnection _connection;
-    private readonly IModel _channel;
+    private readonly ConnectionFactory _factory;
+    private readonly object _connectionLock = new();
+    private IConnection? _connection;
+    private IModel? _channel;
 
     public RabbitMqService(IConfiguration configuration)
     {
-        var factory = new ConnectionFactory()
+        _factory = new ConnectionFactory()
         {
             HostName = configuration["RabbitMq:HostName"] ?? "localhost",
             Port = configuration.GetValue("RabbitMq:Port", AmqpTcpEndpoint.UseDefaultPort),
             UserName = configuration["RabbitMq:UserName"] ?? ConnectionFactory.DefaultUser,
             Password = configuration["RabbitMq:Password"] ?? ConnectionFactory.DefaultPass
         };
-
-        _connection = factory.CreateConnection();
-        _channel = _connection.CreateModel();
     }
 
     public void PublishMessage(string room, string message)
     {
-        _channel.ExchangeDeclare(exchange: room, type: ExchangeType.Fanout);
+        var channel = GetChannel();
+        channel.ExchangeDeclare(exchange: room, type: ExchangeType.Fanout);
         var body = Encoding.UTF8.GetBytes(message);
-        _channel.BasicPublish(exchange: room, routingKey: "", basicProperties: null, body: body);
+        channel.BasicPublish(exchange: room, routingKey: "", basicProperties: null, body: body);
     }
 
     public void ConsumeMessages(string room, Action<string> handleMessage, CancellationToken token)
     {
-        _channel.ExchangeDeclare(exchange: room, type: ExchangeType.Fanout);
-        var queueName = _channel.QueueDeclare().QueueName;
-        _channel.QueueBind(queue: queueName, exchange: room, routingKey: "");
+        var channel = GetChannel();
+        channel.ExchangeDeclare(exchange: room, type: ExchangeType.Fanout);
+        var queueName = channel.QueueDeclare().QueueName;
+        channel.QueueBind(queue: queueName, exchange: room, routingKey: "");
 
-        var consumer = new EventingBasicConsumer(_channel);
+        var consumer = new EventingBasicConsumer(channel);
         consumer.Received += (model, ea) =>
         {
             if (token.IsCancellationRequested)
@@ -51,14 +52,40 @@ public class RabbitMqService : IDisposable
             handleMessage(message);
         };
 
-        var consumerTag = _channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+        var consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
 
         // Listen for the cancellation token being triggered
         token.Register(() =>
         {
             // Cancel the consumer when the token is triggered
-            _channel.BasicCancel(consumerTag);
+            channel.BasicCancel(consumerTag);
         });
+    }
+
+    private IModel GetChannel()
+    {
+        if (_channel?.IsOpen == true)
+        {
+            return _channel;
+        }
+
+        lock (_connectionLock)
+        {
+            if (_channel?.IsOpen == true)
+            {
+                return _channel;
+            }
+
+            if (_connection?.IsOpen != true)
+            {
+                _connection?.Dispose();
+                _connection = _factory.CreateConnection();
+            }
+
+            _channel?.Dispose();
+            _channel = _connection.CreateModel();
+            return _channel;
+        }
     }
 
     public void Dispose()

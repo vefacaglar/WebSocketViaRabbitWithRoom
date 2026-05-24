@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Configuration;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Text;
@@ -9,15 +10,18 @@ public class RabbitMqService : IDisposable
     private readonly IConnection _connection;
     private readonly IModel _channel;
 
-    public RabbitMqService()
+    public RabbitMqService(IConfiguration configuration)
     {
-        //var factory = new ConnectionFactory() { HostName = "localhost" };
         var factory = new ConnectionFactory()
         {
-            HostName = "localhost"
+            HostName = configuration["RabbitMq:HostName"] ?? "localhost",
+            Port = configuration.GetValue("RabbitMq:Port", AmqpTcpEndpoint.UseDefaultPort),
+            UserName = configuration["RabbitMq:UserName"] ?? ConnectionFactory.DefaultUser,
+            Password = configuration["RabbitMq:Password"] ?? ConnectionFactory.DefaultPass
         };
-        //_connection = factory.CreateConnection();
-        //_channel = _connection.CreateModel();
+
+        _connection = factory.CreateConnection();
+        _channel = _connection.CreateModel();
     }
 
     public void PublishMessage(string room, string message)

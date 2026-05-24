@@ -39,7 +39,6 @@ public class RabbitMqService : IDisposable
         {
             if (token.IsCancellationRequested)
             {
-                // If cancellation is requested, stop processing messages
                 return;
             }
 
@@ -50,7 +49,6 @@ public class RabbitMqService : IDisposable
 
         var consumerTag = channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
 
-        // Listen for the cancellation token being triggered
         var cancellationRegistration = token.Register(() =>
         {
             try
@@ -62,7 +60,6 @@ public class RabbitMqService : IDisposable
             }
             catch
             {
-                // The consumer may already be gone during shutdown.
             }
         });
 
@@ -120,7 +117,6 @@ public class RabbitMqService : IDisposable
                 }
                 catch
                 {
-                    // The broker may already have cancelled the consumer while shutting down.
                 }
             }
 

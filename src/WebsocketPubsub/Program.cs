@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.WebSockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddWebSockets(options =>
@@ -12,15 +11,19 @@ builder.Services.AddWebSockets(options =>
 builder.Services.AddSingleton<WebSocketConnectionManager>();
 builder.Services.AddSingleton<RabbitMqService>();
 builder.Services.AddSingleton<IWebSocketBackgroundService, WebSocketBackgroundService>();
-//builder.Services.AddHostedService<WebSocketBackgroundService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsync("An unexpected error occurred.");
+        });
+    });
     app.UseHsts();
 }
 

@@ -4,7 +4,7 @@
 <h1>WebSocket Topic Example</h1>
 <div class="mb-3">
     <label for="room" class="form-label">Room</label>
-    <input type="text" id="room" value="darkshade" class="form-control" />
+    <input type="text" id="room" value="vefa" class="form-control" />
 </div>
 <div class="mb-3">
     <label for="wsUrl" class="form-label">WebSocket URL</label>
@@ -100,9 +100,16 @@
         }
 
         async function publishMessage() {
-            const room = encodeURIComponent(getRoom());
-            const message = encodeURIComponent(document.getElementById('message').value);
-            const response = await fetch(`/api/message?room=${room}&message=${message}`);
+            const response = await fetch('/api/message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    room: getRoom(),
+                    message: document.getElementById('message').value
+                })
+            });
 
             if (response.ok) {
                 log('Published message through local API.');

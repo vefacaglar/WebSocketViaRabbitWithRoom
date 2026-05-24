@@ -15,11 +15,18 @@ namespace WebsocketPubsub.Controllers
             _queueService = queueService;
         }
 
-        [HttpGet]
-        public IActionResult Send(string room, string message)
+        [HttpPost]
+        public IActionResult Send([FromBody] SendMessageRequest request)
         {
-            _queueService.PublishMessage(room, message);
+            if (string.IsNullOrWhiteSpace(request.Room) || string.IsNullOrWhiteSpace(request.Message))
+            {
+                return BadRequest("Room and message are required.");
+            }
+
+            _queueService.PublishMessage(request.Room.Trim(), request.Message);
             return Ok();
         }
     }
+
+    public record SendMessageRequest(string Room, string Message);
 }

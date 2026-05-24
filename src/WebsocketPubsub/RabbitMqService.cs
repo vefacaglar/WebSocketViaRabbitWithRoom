@@ -1,9 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System;
 using System.Text;
-using System.Threading;
 
 public class RabbitMqService : IDisposable
 {

@@ -1,8 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
-using System.Threading;
-using System.Threading.Tasks;
-
-public interface IWebSocketBackgroundService
+﻿public interface IWebSocketBackgroundService
 {
     void StartConsumingForRoom(string room);
     void StopConsumingForRoom(string room);

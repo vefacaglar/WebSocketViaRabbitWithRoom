@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>CustomPubSub</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Your Name</Authors>
+    <Description>Core abstractions for pub/sub messaging</Description>
+    <PackageTags>pubsub;messaging;abstractions</PackageTags>
+  </PropertyGroup>
+
+</Project>

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using WebsocketPubsub.Messaging;
+using CustomPubSub;
 using WebsocketPubsub.Models;
 
 namespace WebsocketPubsub.Controllers;

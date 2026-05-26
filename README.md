@@ -1,8 +1,88 @@
-# WebsocketPubsub
+# CustomPubSub
 
-ASP.NET Core WebSocket + RabbitMQ pub/sub POC.
+A modular pub/sub messaging library for .NET with WebSocket integration.
 
-This project makes it easy to test room-based WebSocket broadcasting through RabbitMQ, including a local multi-instance setup that simulates a load-balanced environment.
+## Project Structure
+
+```
+├── src/
+│   ├── CustomPubSub/              # Core abstractions
+│   ├── CustomPubSub.RabbitMq/     # RabbitMQ implementation
+│   └── CustomPubSub.WebSocket/    # WebSocket integration
+└── samples/
+    └── WebsocketPubsub/           # Sample application
+```
+
+## Packages
+
+- **CustomPubSub** - Core abstractions (`IMessagePublisher`, `IMessageSubscriber`)
+- **CustomPubSub.RabbitMq** - RabbitMQ implementation
+- **CustomPubSub.WebSocket** - WebSocket integration for room-based broadcasting
+
+## Usage
+
+### 1. Configure services
+
+```csharp
+using CustomPubSub.RabbitMq;
+using CustomPubSub.WebSocket;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRabbitMqPubSub(builder.Configuration);
+builder.Services.AddCustomPubSubWebSocket();
+
+var app = builder.Build();
+
+app.UseCustomPubSubWebSocket();
+
+app.Run();
+```
+
+### 2. Configure RabbitMQ (appsettings.json)
+
+```json
+{
+  "RabbitMq": {
+    "HostName": "localhost",
+    "Port": 5672,
+    "UserName": "guest",
+    "Password": "guest",
+    "ExchangeName": "rooms"
+  }
+}
+```
+
+### 3. Publish messages
+
+```csharp
+public class MyController : ControllerBase
+{
+    private readonly IMessagePublisher _publisher;
+
+    public MyController(IMessagePublisher publisher)
+    {
+        _publisher = publisher;
+    }
+
+    [HttpPost("publish")]
+    public async Task Publish(string room, string message)
+    {
+        await _publisher.PublishAsync(room, message);
+    }
+}
+```
+
+### 4. Connect via WebSocket
+
+```javascript
+const socket = new WebSocket('ws://localhost:5232/ws/myroom');
+socket.onmessage = (event) => console.log(event.data);
+```
+
+## Sample Application
+
+The sample application demonstrates the library usage.
 
 ## Requirements
 
@@ -47,7 +127,7 @@ docker compose down -v
 From the repository root:
 
 ```bash
-dotnet run --project src/WebsocketPubsub/WebsocketPubsub.csproj --launch-profile http
+dotnet run --project samples/WebsocketPubsub/WebsocketPubsub.csproj --launch-profile http
 ```
 
 Application URL:

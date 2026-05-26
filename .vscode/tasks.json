@@ -13,7 +13,7 @@
     {
       "label": "restore no audit",
       "type": "shell",
-      "command": "dotnet restore ${workspaceFolder}/src/WebsocketPubsub/WebsocketPubsub.csproj -p:NuGetAudit=false",
+      "command": "dotnet restore ${workspaceFolder}/samples/WebsocketPubsub/WebsocketPubsub.csproj -p:NuGetAudit=false",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -22,7 +22,7 @@
     {
       "label": "build no restore",
       "type": "shell",
-      "command": "dotnet build ${workspaceFolder}/src/WebsocketPubsub/WebsocketPubsub.csproj --no-restore -p:NuGetAudit=false",
+      "command": "dotnet build ${workspaceFolder}/samples/WebsocketPubsub/WebsocketPubsub.csproj --no-restore -p:NuGetAudit=false",
       "options": {
         "cwd": "${workspaceFolder}"
       },

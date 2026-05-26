@@ -1,6 +1,6 @@
-using WebsocketPubsub.Messaging;
+using Microsoft.Extensions.Logging;
 
-namespace WebsocketPubsub.WebSockets;
+namespace CustomPubSub.WebSocket;
 
 public sealed class RoomBroadcaster : IRoomBroadcaster
 {

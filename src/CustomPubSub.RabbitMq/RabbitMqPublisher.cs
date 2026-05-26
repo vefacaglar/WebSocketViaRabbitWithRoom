@@ -1,7 +1,7 @@
 using System.Text;
 using RabbitMQ.Client;
 
-namespace WebsocketPubsub.Messaging;
+namespace CustomPubSub.RabbitMq;
 
 public sealed class RabbitMqPublisher : IMessagePublisher
 {

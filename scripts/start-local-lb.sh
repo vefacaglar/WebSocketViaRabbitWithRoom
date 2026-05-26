@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT="$ROOT_DIR/src/WebsocketPubsub/WebsocketPubsub.csproj"
+PROJECT="$ROOT_DIR/samples/WebsocketPubsub/WebsocketPubsub.csproj"
 RUNTIME_DIR="$ROOT_DIR/.local"
 PID_DIR="$RUNTIME_DIR/pids"
 LOG_DIR="$RUNTIME_DIR/logs"

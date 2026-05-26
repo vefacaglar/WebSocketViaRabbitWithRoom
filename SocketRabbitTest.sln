@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebsocketPubsub", "src\WebsocketPubsub\WebsocketPubsub.csproj", "{AE1FBE62-E09B-459B-99C5-823B3AC1B4B3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomPubSub", "src\CustomPubSub\CustomPubSub.csproj", "{B1F2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomPubSub.RabbitMq", "src\CustomPubSub.RabbitMq\CustomPubSub.RabbitMq.csproj", "{C2D3E4F5-6789-0ABC-DEF1-234567890123}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomPubSub.WebSocket", "src\CustomPubSub.WebSocket\CustomPubSub.WebSocket.csproj", "{D3E4F567-890A-BCDE-F123-456789012345}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebsocketPubsub", "samples\WebsocketPubsub\WebsocketPubsub.csproj", "{AE1FBE62-E09B-459B-99C5-823B3AC1B4B3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,6 +17,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B1F2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1F2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1F2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1F2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2D3E4F5-6789-0ABC-DEF1-234567890123}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2D3E4F5-6789-0ABC-DEF1-234567890123}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2D3E4F5-6789-0ABC-DEF1-234567890123}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2D3E4F5-6789-0ABC-DEF1-234567890123}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3E4F567-890A-BCDE-F123-456789012345}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3E4F567-890A-BCDE-F123-456789012345}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3E4F567-890A-BCDE-F123-456789012345}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3E4F567-890A-BCDE-F123-456789012345}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AE1FBE62-E09B-459B-99C5-823B3AC1B4B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AE1FBE62-E09B-459B-99C5-823B3AC1B4B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE1FBE62-E09B-459B-99C5-823B3AC1B4B3}.Release|Any CPU.ActiveCfg = Release|Any CPU

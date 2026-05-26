@@ -6,12 +6,12 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "debug: prepare",
-      "program": "${workspaceFolder}/src/WebsocketPubsub/bin/Debug/net10.0/WebsocketPubsub.dll",
+      "program": "${workspaceFolder}/samples/WebsocketPubsub/bin/Debug/net10.0/WebsocketPubsub.dll",
       "args": [
         "--urls",
         "http://localhost:5232"
       ],
-      "cwd": "${workspaceFolder}/src/WebsocketPubsub",
+      "cwd": "${workspaceFolder}/samples/WebsocketPubsub",
       "console": "integratedTerminal",
       "stopAtEntry": false,
       "env": {

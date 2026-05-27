@@ -9,6 +9,11 @@
     <Authors>Your Name</Authors>
     <Description>Core abstractions for pub/sub messaging</Description>
     <PackageTags>pubsub;messaging;abstractions</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

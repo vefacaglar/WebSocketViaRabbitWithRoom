@@ -9,7 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+    <ProjectReference Include="..\..\src\CustomPubSub.RabbitMq\CustomPubSub.RabbitMq.csproj" />
+    <ProjectReference Include="..\..\src\CustomPubSub.WebSocket\CustomPubSub.WebSocket.csproj" />
   </ItemGroup>
 
 </Project>

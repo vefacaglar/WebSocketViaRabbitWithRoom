@@ -2,15 +2,15 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 
-namespace WebsocketPubsub.WebSockets;
+namespace CustomPubSub.WebSocket;
 
 public sealed class WebSocketConnectionManager
 {
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, WebSocket>> _rooms = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, System.Net.WebSockets.WebSocket>> _rooms = new();
 
-    public void AddSocket(string room, string id, WebSocket socket)
+    public void AddSocket(string room, string id, System.Net.WebSockets.WebSocket socket)
     {
-        var roomSockets = _rooms.GetOrAdd(room, _ => new ConcurrentDictionary<string, WebSocket>());
+        var roomSockets = _rooms.GetOrAdd(room, _ => new ConcurrentDictionary<string, System.Net.WebSockets.WebSocket>());
         roomSockets.TryAdd(id, socket);
     }
 

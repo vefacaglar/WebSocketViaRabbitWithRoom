@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
-namespace WebsocketPubsub.Messaging;
+namespace CustomPubSub.RabbitMq;
 
 public sealed class RabbitMqConnection : IAsyncDisposable
 {

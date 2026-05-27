@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
-using WebsocketPubsub.WebSockets;
+using Microsoft.AspNetCore.Http;
 
-namespace WebsocketPubsub.Middleware;
+namespace CustomPubSub.WebSocket;
 
 public sealed class WebSocketMiddleware
 {

@@ -1,4 +1,4 @@
-namespace WebsocketPubsub.WebSockets;
+namespace CustomPubSub.WebSocket;
 
 public interface IRoomBroadcaster
 {

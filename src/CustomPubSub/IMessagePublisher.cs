@@ -1,4 +1,4 @@
-namespace WebsocketPubsub.Messaging;
+namespace CustomPubSub;
 
 public interface IMessagePublisher
 {

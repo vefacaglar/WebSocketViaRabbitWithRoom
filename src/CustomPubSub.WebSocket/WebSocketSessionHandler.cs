@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
+using Microsoft.Extensions.Logging;
 
-namespace WebsocketPubsub.WebSockets;
+namespace CustomPubSub.WebSocket;
 
 public sealed class WebSocketSessionHandler
 {
@@ -15,7 +16,7 @@ public sealed class WebSocketSessionHandler
         _logger = logger;
     }
 
-    public async Task HandleAsync(WebSocket socket, string room, string socketId, CancellationToken cancellationToken)
+    public async Task HandleAsync(System.Net.WebSockets.WebSocket socket, string room, string socketId, CancellationToken cancellationToken)
     {
         var buffer = new byte[ReceiveBufferSize];
 

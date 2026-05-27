@@ -1,27 +1,26 @@
 # CustomPubSub
 
-A modular pub/sub messaging library for .NET with WebSocket integration.
-
-## Project Structure
-
-```
-├── src/
-│   ├── CustomPubSub/              # Core abstractions
-│   ├── CustomPubSub.RabbitMq/     # RabbitMQ implementation
-│   └── CustomPubSub.WebSocket/    # WebSocket integration
-└── samples/
-    └── WebsocketPubsub/           # Sample application
-```
+Room-based pub/sub messaging library for .NET with RabbitMQ and WebSocket support.
 
 ## Packages
 
-- **CustomPubSub** - Core abstractions (`IMessagePublisher`, `IMessageSubscriber`)
-- **CustomPubSub.RabbitMq** - RabbitMQ implementation
-- **CustomPubSub.WebSocket** - WebSocket integration for room-based broadcasting
+| Package | Description |
+|---------|-------------|
+| `CustomPubSub` | Core abstractions (`IMessagePublisher`, `IMessageSubscriber`) |
+| `CustomPubSub.RabbitMq` | RabbitMQ implementation using direct exchanges |
+| `CustomPubSub.WebSocket` | ASP.NET Core WebSocket middleware for room-based broadcasting |
 
-## Usage
+## Installation
 
-### 1. Configure services
+```bash
+dotnet add package CustomPubSub --version 1.0.0
+dotnet add package CustomPubSub.RabbitMq --version 1.0.0
+dotnet add package CustomPubSub.WebSocket --version 1.0.0
+```
+
+## Quick Start
+
+### 1. Register services
 
 ```csharp
 using CustomPubSub.RabbitMq;
@@ -39,7 +38,9 @@ app.UseCustomPubSubWebSocket();
 app.Run();
 ```
 
-### 2. Configure RabbitMQ (appsettings.json)
+### 2. Configure RabbitMQ
+
+`appsettings.json`:
 
 ```json
 {
@@ -51,6 +52,19 @@ app.Run();
     "ExchangeName": "rooms"
   }
 }
+```
+
+Or use the delegate overload:
+
+```csharp
+builder.Services.AddRabbitMqPubSub(options =>
+{
+    options.HostName = "localhost";
+    options.Port = 5672;
+    options.UserName = "guest";
+    options.Password = "guest";
+    options.ExchangeName = "rooms";
+});
 ```
 
 ### 3. Publish messages
@@ -76,173 +90,148 @@ public class MyController : ControllerBase
 ### 4. Connect via WebSocket
 
 ```javascript
-const socket = new WebSocket('ws://localhost:5232/ws/myroom');
+const socket = new WebSocket('ws://localhost:5000/ws/myroom');
 socket.onmessage = (event) => console.log(event.data);
 ```
 
-## Sample Application
+## API Reference
 
-The sample application demonstrates the library usage.
+### CustomPubSub
 
-## Requirements
+Core abstractions that define the pub/sub contract.
+
+```csharp
+public interface IMessagePublisher
+{
+    ValueTask PublishAsync(string room, string message, CancellationToken cancellationToken = default);
+}
+
+public interface IMessageSubscriber
+{
+    Task<IAsyncDisposable> SubscribeAsync(string room, Func<string, Task> handleMessageAsync, CancellationToken cancellationToken);
+}
+```
+
+### CustomPubSub.RabbitMq
+
+RabbitMQ implementation. Registers `IMessagePublisher` and `IMessageSubscriber` as singletons.
+
+**Registration:**
+
+```csharp
+services.AddRabbitMqPubSub(configuration);
+// or
+services.AddRabbitMqPubSub(options => { ... });
+```
+
+**Options (`RabbitMqOptions`):**
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `HostName` | `localhost` | RabbitMQ host |
+| `Port` | `5672` | AMQP port |
+| `UserName` | `guest` | Username |
+| `Password` | `guest` | Password |
+| `ExchangeName` | `rooms` | Direct exchange name |
+
+### CustomPubSub.WebSocket
+
+ASP.NET Core WebSocket middleware. Manages room-based WebSocket connections and bridges them to RabbitMQ subscriptions.
+
+**Registration:**
+
+```csharp
+services.AddCustomPubSubWebSocket();
+// optional keep-alive interval
+services.AddCustomPubSubWebSocket(keepAliveInterval: TimeSpan.FromSeconds(60));
+```
+
+**Middleware:**
+
+```csharp
+app.UseCustomPubSubWebSocket();
+```
+
+**WebSocket endpoint:**
+
+```
+ws://localhost:<port>/ws/{room}
+```
+
+## Architecture
+
+```
+Client A ──ws──┐                    ┌──ws── Client C
+               │                    │
+          Instance 1 ──┐      ┌── Instance 2
+               │       │      │       │
+               │       ▼      ▼       │
+               │     ┌────────────┐   │
+               │     │  RabbitMQ  │   │
+               │     │  (direct   │   │
+               │     │  exchange) │   │
+               │     └────────────┘   │
+               │                      │
+Client B ──ws──┘                      └──ws── Client D
+```
+
+- Each application instance tracks only its own WebSocket clients in memory.
+- RabbitMQ direct exchanges route messages by room name (routing key).
+- When a client connects to a room, the instance starts a RabbitMQ consumer for that room.
+- Published messages are distributed by RabbitMQ to all consuming instances.
+- Each instance broadcasts the message only to its own connected WebSocket clients.
+
+This enables horizontal scaling across multiple application instances.
+
+## Sample
+
+See [samples/WebsocketPubsub](samples/WebsocketPubsub/) for a working example.
+
+## Development
+
+### Requirements
 
 - .NET SDK 10
 - Docker
-- Make
 
-## RabbitMQ
+### Build
 
-Start RabbitMQ:
+```bash
+dotnet build
+```
+
+### Pack
+
+```bash
+dotnet pack src/CustomPubSub/CustomPubSub.csproj -c Release -o packages
+dotnet pack src/CustomPubSub.RabbitMq/CustomPubSub.RabbitMq.csproj -c Release -o packages
+dotnet pack src/CustomPubSub.WebSocket/CustomPubSub.WebSocket.csproj -c Release -o packages
+```
+
+### Start RabbitMQ
 
 ```bash
 docker compose up -d
 ```
 
-RabbitMQ Management UI:
+Management UI: `http://localhost:15672` (guest / guest)
 
-```text
-http://localhost:15672
-```
-
-Login:
-
-```text
-guest / guest
-```
-
-Stop RabbitMQ:
-
-```bash
-docker compose down
-```
-
-Stop RabbitMQ and remove its volume:
-
-```bash
-docker compose down -v
-```
-
-## Run One Instance
-
-From the repository root:
+### Run sample
 
 ```bash
 dotnet run --project samples/WebsocketPubsub/WebsocketPubsub.csproj --launch-profile http
 ```
 
-Application URL:
+### Multi-instance test
 
-```text
-http://localhost:5232
-```
-
-On the page:
-
-1. Choose a room.
-2. Click `Connect WebSocket`.
-3. Enter a message.
-4. Click `Publish` to publish the message to the same room through RabbitMQ.
-
-## VS Code Debug
-
-Open the Run and Debug panel and select:
-
-```text
-Debug WebsocketPubsub
-```
-
-This configuration:
-
-1. Starts RabbitMQ with `docker compose up -d`.
-2. Restores and builds the project.
-3. Starts the application in debug mode on `http://localhost:5232`.
-
-## Local Multi-Instance Test
-
-To simulate a load-balanced environment locally, start three application instances with one command:
+Simulate a load-balanced environment with 3 instances:
 
 ```bash
 make local-lb
 ```
 
-This command:
-
-- Starts RabbitMQ.
-- Restores and builds the project.
-- Starts the application on three different ports:
-
-```text
-http://localhost:5232
-http://localhost:5233
-http://localhost:5234
-```
-
-To test the flow:
-
-1. Open the three URLs in separate browser tabs.
-2. Use the same room in each tab, for example `vefa`.
-3. Click `Connect WebSocket` in each tab.
-4. Click `Publish` from any tab.
-5. The message should appear in the other tabs as well.
-
-Logs are written to:
-
-```text
-.local/logs/
-```
-
-Stop all local instances:
+Opens ports `5232`, `5233`, `5234`. Open each in a browser, connect to the same room, and publish from any tab.
 
 ```bash
 make local-lb-stop
 ```
-
-## API
-
-Publish a message:
-
-```http
-POST /api/message
-Content-Type: application/json
-```
-
-Body:
-
-```json
-{
-  "room": "vefa",
-  "message": "hello local websocket"
-}
-```
-
-Curl example:
-
-```bash
-curl -X POST http://localhost:5232/api/message \
-  -H "Content-Type: application/json" \
-  -d '{"room":"vefa","message":"hello local websocket"}'
-```
-
-## WebSocket Endpoint
-
-Room-based WebSocket endpoint format:
-
-```text
-ws://localhost:5232/ws/{room}
-```
-
-Example:
-
-```text
-ws://localhost:5232/ws/vefa
-```
-
-## Architecture Notes
-
-- Each application instance keeps track of only its own connected WebSocket clients in memory.
-- RabbitMQ fanout exchanges are created by room name.
-- When a client connects to a room, that application instance starts a RabbitMQ consumer for that room.
-- When a message is published through the API, RabbitMQ distributes it to all application instances that consume the same room.
-- Each application instance broadcasts the message only to the WebSocket clients connected to that instance.
-
-This allows local testing of pub/sub behavior across multiple application instances.
